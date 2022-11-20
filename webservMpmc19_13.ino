@@ -5,7 +5,7 @@
 #include <Wire.h>
 #include "MAX30105.h"
 #include "MAX30100_PulseOximeter.h"
-
+#include <string>
 #include "heartRate.h"
 
 #define DS18B20 2
@@ -212,6 +212,7 @@ void loop() {
     Serial.println("No finger?");
     delay(2000);
     beatsPerMinute = 0;
+    eSpO2 = 95;
   }
   lastBeat = millis();
 }
@@ -312,7 +313,7 @@ String updateWebpage(uint8_t LEDstatus) {
   ptr += "<span class='sensor-labels pt-4'> Beats per Mins </span><br/>";
   ptr += "<div class=\"rounded-2 bg-lime-100 p-2\">";
   ptr += "<span class=\"text-2xl text-green-500 \">";
-  ptr += (float)eSpO2;
+  ptr += (float)(beatsPerMinute==0)?0:eSpO2;
   ptr += "<\span>";
   ptr += "<sup class='units'> %</sup>";
   ptr += "<\div>";
