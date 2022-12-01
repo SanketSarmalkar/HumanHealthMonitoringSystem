@@ -9,11 +9,11 @@
 #include "heartRate.h"
 
 #include "ThingSpeak.h"
-#define SECRET_CH_ID 1964229           // replace 0000000 with your channel number
-#define SECRET_WRITE_APIKEY "6P05WTZKPPBZ5MZP"   // replace XYZ with your channel write API Key
+#define SECRET_CH_ID 1964229                    // replace 0000000 with your channel number
+#define SECRET_WRITE_APIKEY "6P05WTZKPPBZ5MZP"  // replace XYZ with your channel write API Key
 unsigned long myChannelNumber = SECRET_CH_ID;
-const char * myWriteAPIKey = SECRET_WRITE_APIKEY;
-
+const char* myWriteAPIKey = SECRET_WRITE_APIKEY;
+WiFiClient client;
 
 #define DS18B20 2
 
@@ -115,7 +115,7 @@ void setup() {
 
   server.begin();
   Serial.println("HTTP Server Started");
-  ThingSpeak.begin(client); 
+  ThingSpeak.begin(client);
 }
 void loop() {
   server.handleClient();
@@ -128,7 +128,6 @@ void loop() {
     digitalWrite(16, LOW);}
 */
   /*
-
   Serial.print(" Requesting temperatures..."); 
   sensors.requestTemperatures(); // Send the command to get temperature readings 
   Serial.println("DONE"); 
@@ -136,7 +135,6 @@ void loop() {
   /*  Serial.print("Temperature is: "); 
   bodytemp = sensors.getTempCByIndex(0);
   Serial.print(sensors.getTempCByIndex(0));
-
 */
   long irValue = particleSensor.getIR();
 
@@ -207,11 +205,12 @@ void loop() {
     Serial.println(eSpO2);
 
     ThingSpeak.setField(1, beatsPerMinute);
+    ThingSpeak.setField(2, (int)irValue);
+    ThingSpeak.setField(3, (int)eSpO2);
     int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-    if(x == 200){
+    if (x == 200) {
       Serial.println("Channel update successful.");
-    }
-    else{
+    } else {
       Serial.println("Problem updating channel. HTTP error code " + String(x));
     }
     delay(1000);
@@ -224,6 +223,7 @@ void loop() {
   Serial.print(", Avg BPM=");
   Serial.print(beatAvg);
 */
+
   if (irValue < 50000) {
     Serial.println("No finger?");
     delay(2000);
@@ -329,7 +329,7 @@ String updateWebpage(uint8_t LEDstatus) {
   ptr += "<span class='sensor-labels pt-4'> Beats per Mins </span><br/>";
   ptr += "<div class=\"rounded-2 bg-lime-100 p-2\">";
   ptr += "<span class=\"text-2xl text-green-500 \">";
-  ptr += (float)(beatsPerMinute==0)?0:eSpO2;
+  ptr += (float)(beatsPerMinute == 0) ? 0 : eSpO2;
   ptr += "<\span>";
   ptr += "<sup class='units'> %</sup>";
   ptr += "<\div>";
