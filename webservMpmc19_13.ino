@@ -204,15 +204,17 @@ void loop() {
     Serial.print(", SpO2 =");
     Serial.println(eSpO2);
 
+
     ThingSpeak.setField(1, beatsPerMinute);
     ThingSpeak.setField(2, (int)irValue);
-    ThingSpeak.setField(3, (int)eSpO2);
+    ThingSpeak.setField(3, (eSpO2 == 95) ? 0 : (int)eSpO2);
     int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
     if (x == 200) {
       Serial.println("Channel update successful.");
     } else {
       Serial.println("Problem updating channel. HTTP error code " + String(x));
     }
+
     delay(1000);
   }
   /*
@@ -229,7 +231,17 @@ void loop() {
     delay(2000);
     beatsPerMinute = 0;
     eSpO2 = 95;
+    ThingSpeak.setField(1, beatsPerMinute);
+    ThingSpeak.setField(2, (int)irValue);
+    ThingSpeak.setField(3, 0);
+    int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+    if (x == 200) {
+      Serial.println("Channel update successful.");
+    } else {
+      Serial.println("Problem updating channel. HTTP error code " + String(x));
+    }
   }
+
   lastBeat = millis();
 }
 
