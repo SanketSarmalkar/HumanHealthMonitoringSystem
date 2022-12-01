@@ -8,6 +8,13 @@
 #include <string>
 #include "heartRate.h"
 
+#include "ThingSpeak.h"
+#define SECRET_CH_ID 1964229           // replace 0000000 with your channel number
+#define SECRET_WRITE_APIKEY "6P05WTZKPPBZ5MZP"   // replace XYZ with your channel write API Key
+unsigned long myChannelNumber = SECRET_CH_ID;
+const char * myWriteAPIKey = SECRET_WRITE_APIKEY;
+
+
 #define DS18B20 2
 
 PulseOximeter pox;
@@ -108,6 +115,7 @@ void setup() {
 
   server.begin();
   Serial.println("HTTP Server Started");
+  ThingSpeak.begin(client); 
 }
 void loop() {
   server.handleClient();
@@ -198,6 +206,14 @@ void loop() {
     Serial.print(", SpO2 =");
     Serial.println(eSpO2);
 
+    ThingSpeak.setField(1, beatsPerMinute);
+    int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+    if(x == 200){
+      Serial.println("Channel update successful.");
+    }
+    else{
+      Serial.println("Problem updating channel. HTTP error code " + String(x));
+    }
     delay(1000);
   }
   /*
