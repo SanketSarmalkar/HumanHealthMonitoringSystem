@@ -5,24 +5,17 @@
 #include <Wire.h>
 #include "MAX30105.h"
 #include "MAX30100_PulseOximeter.h"
-#include <string>
-#include "heartRate.h"
 
-#include "ThingSpeak.h"
-#define SECRET_CH_ID 1964229                    // replace 0000000 with your channel number
-#define SECRET_WRITE_APIKEY "6P05WTZKPPBZ5MZP"  // replace XYZ with your channel write API Key
-unsigned long myChannelNumber = SECRET_CH_ID;
-const char* myWriteAPIKey = SECRET_WRITE_APIKEY;
-WiFiClient client;
+#include "heartRate.h"
 
 #define DS18B20 2
 
 PulseOximeter pox;
-//for ds18b20
+
 OneWire oneWire(DS18B20);
 DallasTemperature sensors(&oneWire);
 
-// max30102
+
 MAX30105 particleSensor;
 
 const byte RATE_SIZE = 4;  //Increase this for more averaging. 4 is good.
@@ -36,35 +29,12 @@ int beatAvg;
 float bodytemp = 0;
 
 /*Put WiFi SSID & Password*/
-const char* ssid = "Galaxy M518B8E";  // Enter SSID here
-const char* password = "jzni3896";    // Enter Password here
+const char* ssid = "Galaxy M518B8E";    // Enter SSID here
+const char* password = "jzni3896";  // Enter Password here
 
 ESP8266WebServer server(80);
 
 bool LEDstatus = LOW;
-
-// SPO2
-double aveRed = 0;     //DC component of RED signal
-double aveIr = 0;      //DC component of IR signal
-double sumIrRMS = 0;   //sum of IR square
-double sumRedRMS = 0;  // sum of RED square
-unsigned int i = 0;    //loop counter
-#define SUM_CYCLE 100
-int Num = SUM_CYCLE;  //calculate SpO2 by this sampling interval
-double eSpO2 = 95.0;  //initial value of estimated SpO2
-double fSpO2 = 0.7;   //filter factor for estimated SpO2
-double fRate = 0.95;  //low pass filter for IR/red LED value to eliminate AC component
-double SpO2 = 0;
-
-
-#define TIMETOBOOT 3000  // wait for this time(msec) to output SpO2
-#define SCALE 88.0       //adjust to display heart beat and SpO2 in Arduino serial plotter at the same time
-#define SAMPLING 1       //if you want to see heart beat more precisely , set SAMPLING to 1
-#define FINGER_ON 50000  // if ir signal is lower than this , it indicates your finger is not on the sensor
-#define MINIMUM_SPO2 80.0
-#define MAX_SPO2 100.0
-#define MIN_SPO2 80.0
-
 
 void setup() {
   Serial.begin(115200);
@@ -115,7 +85,6 @@ void setup() {
 
   server.begin();
   Serial.println("HTTP Server Started");
-  ThingSpeak.begin(client);
 }
 void loop() {
   server.handleClient();
@@ -128,6 +97,7 @@ void loop() {
     digitalWrite(16, LOW);}
 */
   /*
+
   Serial.print(" Requesting temperatures..."); 
   sensors.requestTemperatures(); // Send the command to get temperature readings 
   Serial.println("DONE"); 
@@ -135,6 +105,7 @@ void loop() {
   /*  Serial.print("Temperature is: "); 
   bodytemp = sensors.getTempCByIndex(0);
   Serial.print(sensors.getTempCByIndex(0));
+
 */
   long irValue = particleSensor.getIR();
 
@@ -158,7 +129,7 @@ void loop() {
     Serial.print(delta);
     Serial.print("bpm rahul");
     Serial.print(beatsPerMinute);*/
-
+    
     if (beatsPerMinute < 255 && beatsPerMinute > 20) {
       rates[rateSpot++] = (byte)beatsPerMinute;  //Store this reading in the array
       rateSpot %= RATE_SIZE;                     //Wrap variable
@@ -170,54 +141,17 @@ void loop() {
       beatAvg /= RATE_SIZE;
     }
 
-    //SPO2
-    uint32_t ir, red;  //raw data
-    double fred, fir;  //floating point RED ana IR raw values
-    double SpO2 = 0;   //raw SpO2 before low pass filtered
-    // double ir = particleSensor.getIR();
-    // double red = particleSensor.getRed();
-    red = particleSensor.getRed();  //Sparkfun's MAX30105
-    ir = particleSensor.getIR();    //Sparkfun's MAX30105
-
-    fred = (double)red;
-    fir = (double)ir;
-    aveRed = aveRed * fRate + (double)red * (1.0 - fRate);  //average red level by low pass filter
-    aveIr = aveIr * fRate + (double)ir * (1.0 - fRate);     //average IR level by low pass filter
-    sumRedRMS += (fred - aveRed) * (fred - aveRed);         //square sum of alternate component of red level
-    sumIrRMS += (fir - aveIr) * (fir - aveIr);              //square sum of alternate component of IR level
-    double R = (sqrt(sumRedRMS) / aveRed) / (sqrt(sumIrRMS) / aveIr);
-
-    SpO2 = -45.060 * R * R + 30.354 * R + 94.845 + 12;
-    //SpO2 = -23.3*(R - 0.4 )+ 100;
-    eSpO2 = fSpO2 * eSpO2 + (1.0 - fSpO2) * SpO2;
-
-
-
-
 
     Serial.print(" IR=");
     Serial.print(irValue);
     Serial.print(", BPM=");
     Serial.print(beatsPerMinute);
     Serial.print(", Avg BPM=");
-    Serial.print(beatAvg);
-    Serial.print(", SpO2 =");
-    Serial.println(eSpO2);
-
-
-    ThingSpeak.setField(1, beatsPerMinute);
-    ThingSpeak.setField(2, (int)irValue);
-    ThingSpeak.setField(3, (eSpO2 == 95) ? 0 : (int)eSpO2);
-    int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-    if (x == 200) {
-      Serial.println("Channel update successful.");
-    } else {
-      Serial.println("Problem updating channel. HTTP error code " + String(x));
-    }
+    Serial.println(beatAvg);
 
     delay(1000);
   }
-  /*
+/*
   Serial.print("IR=");
   Serial.print(irValue);
   Serial.print(", BPM=");
@@ -225,23 +159,11 @@ void loop() {
   Serial.print(", Avg BPM=");
   Serial.print(beatAvg);
 */
-
-  if (irValue < 50000) {
+  if (irValue < 50000){
     Serial.println("No finger?");
     delay(2000);
     beatsPerMinute = 0;
-    eSpO2 = 95;
-    ThingSpeak.setField(1, beatsPerMinute);
-    ThingSpeak.setField(2, (int)irValue);
-    ThingSpeak.setField(3, 0);
-    int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-    if (x == 200) {
-      Serial.println("Channel update successful.");
-    } else {
-      Serial.println("Problem updating channel. HTTP error code " + String(x));
-    }
   }
-
   lastBeat = millis();
 }
 
@@ -332,18 +254,7 @@ String updateWebpage(uint8_t LEDstatus) {
   ptr += "<span class=\"text-2xl text-green-500 \">";
   ptr += (float)beatsPerMinute;
   ptr += "<\span>";
-  //ptr += "<sup class='units'>BPM</sup>";
-  ptr += "<\div>";
-  ptr += "</p>";
-
-  ptr += "<p class='sensor'>";
-  ptr += "<i class='fas fa-thermometer-full' style='color:#d9534f'></i>";
-  ptr += "<span class='sensor-labels pt-4'> Beats per Mins </span><br/>";
-  ptr += "<div class=\"rounded-2 bg-lime-100 p-2\">";
-  ptr += "<span class=\"text-2xl text-green-500 \">";
-  ptr += (float)(beatsPerMinute == 0) ? 0 : eSpO2;
-  ptr += "<\span>";
-  ptr += "<sup class='units'> %</sup>";
+  ptr += "<sup class='units'>°C</sup>";
   ptr += "<\div>";
   ptr += "</p>";
 
